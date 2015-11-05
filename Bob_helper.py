@@ -11,10 +11,9 @@ import pandas as pd
 import random
 import time
 import pdb
-
+from math import sqrt
 def cross_val_score_proba(X,y,nfold,classifier):
-	"""
-	This function calculates cross_val_score for auc with predicted probabilities
+	"""This function calculates cross_val_score for auc with predicted probabilities
 	returns a list of scores
 	"""
 	from sklearn.cross_validation import KFold
@@ -36,9 +35,18 @@ def cross_val_score_proba(X,y,nfold,classifier):
 	
 	return cv_score
 
+def rmspe(y_actual, y_predict):
+    #Function to calculate RMSPE defined in this competition
+    if len(y_actual) != len(y_predict):
+        raise ValueError('lengths of prediction array and actual array are not equal')
+    else:
+        temp = 0
+        for i in range(len(y_predict)):
+            temp+= ((y_actual[i]-y_predict[i])/y_actual[i])^2
+        return sqrt(temp/len(y_predict))
+
 def imputeMedian(X_matrix):
-	"""
-	given a ndarray, loop through columns and impute missing values with median
+	"""given a ndarray, loop through columns and impute missing values with median
 	median is computed ignoring the nan values in the column
 	"""
 	for i in range(X_matrix.shape[1]):
