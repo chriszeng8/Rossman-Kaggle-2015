@@ -4,6 +4,7 @@ library(sqldf)
 sales <- read.csv('train.csv')
 stores <- read.csv('store.csv')
 test <- read.csv('test.csv')
+raw_sales <- read.csv('train.csv')
 
 sales <- sales[sales$Open==1,]
 sales$Date <- as.Date(sales$Date)
@@ -40,4 +41,6 @@ for(row in 1:nrow(merged_data)){
     }
   }
 }
-write.csv(merged_data, file = 'new_train.csv')
+
+new_train <- merged_data[merged_data$Month == 'Aug' | merged_data$Month == 'Sep',]
+#write.csv(new_train, file = 'new_train.csv')
