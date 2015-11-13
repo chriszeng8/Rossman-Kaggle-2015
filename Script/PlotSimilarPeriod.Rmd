@@ -1,0 +1,98 @@
+---
+title: "Similar Period Sales (Aug-mid Sept in 2013 & 2014)"
+author: "Chris Zeng"
+date: "November 13, 2015"
+output: html_document
+---
+
+*This is to plot sales of similar period in 2013 and 2014 as the test data 48 day time window (i.e., 2015-08-01 and 2015-09-17), note the starting date in 2013 and 2014 are slightly shifted to match the same starting week of the day (i.e., saturday).
+
+```{r}
+setwd("C:\\Users\\zzeng\\Downloads\\Rossman Forecast\\script")
+rm(list=ls())
+
+require(data.table)
+require(ggplot2)
+
+# read in data
+store<-fread("../data/store.csv",stringsAsFactors = F)
+test<-fread("../data/test.csv",stringsAsFactors = F)
+train<-fread("../data/train.csv",stringsAsFactors = F)
+sample_submission<-fread("../data/sample_submission.csv",stringsAsFactors = F)
+
+# join train and store table by "Store"
+train<-merge(train,store,by="Store")
+test<-merge(test,store,by="Store")
+
+# convert date to date format
+train[,Date:=as.Date(Date)]
+test[,Date:=as.Date(Date)]
+
+# the test data was only between "2015-08-01" and "2015-09-17"
+TestStartDate <- min(unique(test[,Date]))
+print (weekdays(TestStartDate))
+TestEndDate <- max(unique(test[,Date]))
+TestWindow = as.Date(TestEndDate)-as.Date(TestStartDate)
+
+# shift date so that the Sales patterns match the test data time window
+shiftDate= -5
+startDate2013 = TestStartDate-365*2 +shiftDate
+print (weekdays(startDate2013))
+endDate2013 = startDate2013 + TestWindow
+cat(paste('2013 Sales from ',startDate2013,'to',endDate2013))
+
+shiftDate= 1
+startDate2014 = TestStartDate-365 +shiftDate
+print(weekdays(startDate2014))
+endDate2014 = startDate2014 + TestWindow
+cat(paste('2014 Sales from ',startDate2014,'to',endDate2014))
+
+# sort the data frame in reversely chronological order
+subsetindex13<-((train$Date>=startDate2013)&(train$Date<=endDate2013))
+sales13<- train[subsetindex13,]
+
+subsetindex14<-((train$Date>=startDate2014)&(train$Date<=endDate2014))
+sales14<- train[subsetindex14,]
+
+# StoreNum = 32 for Store Num, what is causing the sales during the weekday to be 0.
+# There must be some sort of variables.
+
+AllStores <- store$Store
+NumOfStores <- 15
+set.seed(24)
+SelectStore <- sample(AllStores,NumOfStores)
+
+testdates = seq(from=TestEndDate,to=TestStartDate,by=-1)
+plots <- list()
+counter=0
+for (StoreNum in SelectStore) {
+  counter=counter+1
+  print (paste('store number:',StoreNum))
+  if (length(sales13[Store==StoreNum,log(Sales+1)])>0) {
+    logSales13<-data.frame(date = testdates, logSales = sales13[Store==StoreNum,log(Sales+1)],logCustomers = sales13[Store==StoreNum,log(Customers+1)])
+  } else {
+    logSales13<-data.frame(date = testdates, logSales = 0,logCustomers = 0)
+  }
+  if (length(sales14[Store==StoreNum,log(Sales+1)])>0) {
+    logSales14<-data.frame(date = testdates, logSales =sales14[Store==StoreNum,log(Sales+1)],logCustomers = sales14[Store==StoreNum,log(Customers+1)])
+  } else {
+    logSales14<-data.frame(date = testdates, logSales=0,logCustomers = 0)
+  }
+  
+  salesdata=c(logSales14[,"logSales"],logSales13[,"logSales"])
+  yrange=max(salesdata)-min(salesdata)
+     p <- ggplot() + geom_line(data = logSales13, aes(x=date,y=logSales,color="Sales 2013")) +
+       geom_line(data = logSales14, aes(x=date,y=logSales,color="Sales 2014")) +
+       xlab('date') + ylab('log(sales+1)')+labs(title=paste("Store",StoreNum))+ coord_fixed(ratio=48/yrange)
+    plots[[counter]]<-p
+}
+```
+
+*The log sales in 2013 and 2014 during similar period as the test data dates:
+
+```{r, echo=FALSE}
+#multiplot(plotlist=plots, cols=1)
+for (i in 1:NumOfStores) {
+  print((plots[[i]]))
+}
+```
